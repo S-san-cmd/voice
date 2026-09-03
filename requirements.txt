@@ -1,0 +1,8 @@
+streamlit
+pandas
+plotly
+praat-parselmouth
+librosa
+numpy
+scikit-learn
+joblib
