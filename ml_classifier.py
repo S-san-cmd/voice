@@ -2,7 +2,8 @@ import os
 import joblib
 import numpy as np
 
-MODEL_PATH = r"c:\AntiGravity\Onnagoe\model.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model.pkl")
 
 def load_model():
     if os.path.exists(MODEL_PATH):
