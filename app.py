@@ -11,9 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 import feature_extractor
 import rule_classifier
 import ml_classifier
-importlib.reload(feature_extractor)
-importlib.reload(rule_classifier)
-importlib.reload(ml_classifier)
+
 
 from feature_extractor import extract_features
 from rule_classifier import classify_voice, evaluate_voice_quality
@@ -35,7 +33,7 @@ def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob
         font_large = ImageFont.truetype(font_path, 90)
         font_medium = ImageFont.truetype(font_path, 60)
         font_small = ImageFont.truetype(font_path, 40)
-    except IOError:
+    except Exception:
         font_large = ImageFont.load_default()
         font_medium = ImageFont.load_default()
         font_small = ImageFont.load_default()
