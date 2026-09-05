@@ -69,21 +69,37 @@ if audio_source is not None:
                 result, reasons = classify_voice(features)
                 
                 ai_model = load_model()
+                app_url = "https://q8nrqzqtgxkukxmyxoxym5.streamlit.app"
+                
                 if ai_model:
                     ai_pred, ai_probs = predict_voice(features, ai_model)
                     display_pred = ai_pred.replace("シス男性", "男性")
                     
                     female_prob = ai_probs.get("シス女性", ai_probs.get("女性", 0)) * 100
                     
+                    sorted_probs = sorted(ai_probs.items(), key=lambda item: item[1], reverse=True)
+                    top1_class = sorted_probs[0][0].replace("シス男性", "男性")
+                    top1_prob = sorted_probs[0][1] * 100
+                    top2_class = sorted_probs[1][0].replace("シス男性", "男性") if len(sorted_probs) > 1 else ""
+                    top2_prob = sorted_probs[1][1] * 100 if len(sorted_probs) > 1 else 0
+                    
                     if app_mode == "両声類向け":
                         st.markdown(f"<h2 style='text-align: center; color: #ff4b4b;'>女性の可能性: {female_prob:.1f}%</h2>", unsafe_allow_html=True)
-                        tweet_text = f"私の声の女性の可能性は {female_prob:.1f}% でした！\nAI判定結果: {display_pred}\n#発声タイプ判定"
+                        tweet_text = (f"私の声の「女性の可能性」は {female_prob:.1f}% でした！✨\n\n"
+                                      f"あなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}")
                     else:
-                        tweet_text = f"私の声のAI判定結果は「{display_pred}」でした！\n#発声タイプ判定"
+                        st.markdown(f"<h2 style='text-align: center; color: #4b8bff;'>1位: {top1_class} ({top1_prob:.1f}%)</h2>", unsafe_allow_html=True)
+                        if top2_class:
+                            st.markdown(f"<h3 style='text-align: center; color: #666666;'>2位: {top2_class} ({top2_prob:.1f}%)</h3>", unsafe_allow_html=True)
+                        
+                        tweet_text = f"私の声のAI判定結果は 1位: {top1_class}({top1_prob:.1f}%)"
+                        if top2_class:
+                            tweet_text += f"、2位: {top2_class}({top2_prob:.1f}%)"
+                        tweet_text += f" でした！✨\n\nあなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}"
 
                     st.subheader(f"🤖 AI判定結果: **{display_pred}**")
                     prob_str = ", ".join([f"{c.replace('シス男性', '男性')}: {p*100:.1f}%" for c, p in ai_probs.items()])
-                    st.write(f"確信度: {prob_str}")
+                    st.write(f"すべての確信度: {prob_str}")
                 else:
                     st.subheader(f"推定結果: {result}")
                     st.info("💡 学習データ（datasetフォルダ）を追加して train_model.py を実行すると、AI判定が有効になります！")
@@ -91,7 +107,8 @@ if audio_source is not None:
                     for reason in reasons:
                         st.write(f"- {reason}")
                     
-                    tweet_text = f"私の声の推定結果は「{result}」でした！\n#発声タイプ判定"
+                    tweet_text = (f"私の声の推定結果は「{result}」でした！✨\n\n"
+                                  f"あなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}")
                 
                 score, rank, quality_comments = evaluate_voice_quality(features)
                 st.markdown("---")
