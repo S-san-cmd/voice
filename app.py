@@ -72,15 +72,21 @@ if audio_source is not None:
                 app_url = "https://q8nrqzqtgxkukxmyxoxym5.streamlit.app"
                 
                 if ai_model:
+                    def format_class_name(c):
+                        if "両声類" in c: return "両声類"
+                        if "女性" in c: return "女性の声"
+                        if "男性" in c: return "男性の声"
+                        return c
+
                     ai_pred, ai_probs = predict_voice(features, ai_model)
-                    display_pred = ai_pred.replace("シス男性", "男性")
+                    display_pred = format_class_name(ai_pred)
                     
                     female_prob = ai_probs.get("シス女性", ai_probs.get("女性", 0)) * 100
                     
                     sorted_probs = sorted(ai_probs.items(), key=lambda item: item[1], reverse=True)
-                    top1_class = sorted_probs[0][0].replace("シス男性", "男性")
+                    top1_class = format_class_name(sorted_probs[0][0])
                     top1_prob = sorted_probs[0][1] * 100
-                    top2_class = sorted_probs[1][0].replace("シス男性", "男性") if len(sorted_probs) > 1 else ""
+                    top2_class = format_class_name(sorted_probs[1][0]) if len(sorted_probs) > 1 else ""
                     top2_prob = sorted_probs[1][1] * 100 if len(sorted_probs) > 1 else 0
                     
                     if app_mode == "両声類向け":
@@ -98,7 +104,7 @@ if audio_source is not None:
                         tweet_text += f" でした！✨\n\nあなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}"
 
                     st.subheader(f"🤖 AI判定結果: **{display_pred}**")
-                    prob_str = ", ".join([f"{c.replace('シス男性', '男性')}: {p*100:.1f}%" for c, p in ai_probs.items()])
+                    prob_str = ", ".join([f"{format_class_name(c)}: {p*100:.1f}%" for c, p in ai_probs.items()])
                     st.write(f"すべての確信度: {prob_str}")
                 else:
                     st.subheader(f"推定結果: {result}")
