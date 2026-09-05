@@ -149,8 +149,12 @@ if audio_source is not None:
                         if top_nf_class:
                             st.markdown(f"<h3 style='text-align: center; color: #666666;'>2位: {top_nf_class} ({top_nf_prob:.1f}%)</h3>", unsafe_allow_html=True)
                             
-                        tweet_text = (f"私の声の「女性の可能性」は {female_prob:.1f}% でした！✨\n\n"
-                                      f"あなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}")
+                        tweet_text = f"私の声の「女性の可能性」は {female_prob:.1f}% でした！✨\n"
+                        if top_nf_class:
+                            tweet_text += f"（次に近い声: {top_nf_class} {top_nf_prob:.1f}%）\n\n"
+                        else:
+                            tweet_text += "\n"
+                        tweet_text += f"あなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}"
                     else:
                         st.markdown(f"<h2 style='text-align: center; color: #4b8bff;'>1位: {top1_class} ({top1_prob:.1f}%)</h2>", unsafe_allow_html=True)
                         if top2_class:
