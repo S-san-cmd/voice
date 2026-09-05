@@ -43,8 +43,10 @@ def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob
     draw.text((width/2, 120), "発声タイプ判定結果", font=font_medium, fill='#333333', anchor="mm")
     
     if app_mode == "両声類向け":
-        draw.text((width/2, 320), "女性の可能性", font=font_medium, fill='#ff4b4b', anchor="mm")
-        draw.text((width/2, 450), f"{female_prob:.1f}%", font=font_large, fill='#ff4b4b', anchor="mm")
+        draw.text((width/2, 300), "女性の可能性", font=font_medium, fill='#ff4b4b', anchor="mm")
+        draw.text((width/2, 420), f"{female_prob:.1f}%", font=font_large, fill='#ff4b4b', anchor="mm")
+        if top1_class:
+            draw.text((width/2, 510), f"2位: {top1_class} ({top1_prob:.1f}%)", font=font_small, fill='#666666', anchor="mm")
     else:
         draw.text((width/2, 300), f"1位: {top1_class} ({top1_prob:.1f}%)", font=font_large, fill='#4b8bff', anchor="mm")
         if top2_class:
@@ -118,6 +120,8 @@ if audio_source is not None:
                     def format_class_name(c):
                         if "両声類" in c: return "両声類"
                         if "女性" in c: return "女性の声"
+                        if "未変声" in c: return "未変声の男性の声"
+                        if "裏声" in c: return "男性の裏声"
                         if "男性" in c: return "男性の声"
                         return c
 
@@ -133,7 +137,18 @@ if audio_source is not None:
                     top2_prob = sorted_probs[1][1] * 100 if len(sorted_probs) > 1 else 0
                     
                     if app_mode == "両声類向け":
+                        non_female_probs = [item for item in sorted_probs if "女性" not in format_class_name(item[0])]
+                        if non_female_probs:
+                            top_nf_class = format_class_name(non_female_probs[0][0])
+                            top_nf_prob = non_female_probs[0][1] * 100
+                        else:
+                            top_nf_class = ""
+                            top_nf_prob = 0
+                            
                         st.markdown(f"<h2 style='text-align: center; color: #ff4b4b;'>女性の可能性: {female_prob:.1f}%</h2>", unsafe_allow_html=True)
+                        if top_nf_class:
+                            st.markdown(f"<h3 style='text-align: center; color: #666666;'>2位: {top_nf_class} ({top_nf_prob:.1f}%)</h3>", unsafe_allow_html=True)
+                            
                         tweet_text = (f"私の声の「女性の可能性」は {female_prob:.1f}% でした！✨\n\n"
                                       f"あなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}")
                     else:
@@ -172,8 +187,13 @@ if audio_source is not None:
                 st.subheader("シェア用画像")
                 st.write("この画像を保存（長押し or 右クリック）して、X（Twitter）の投稿に添付してください。")
                 
-                t1_class = top1_class if 'top1_class' in locals() else result
-                t1_prob = top1_prob if 'top1_prob' in locals() else 100.0
+                if app_mode == "両声類向け" and 'top_nf_class' in locals():
+                    t1_class = top_nf_class
+                    t1_prob = top_nf_prob
+                else:
+                    t1_class = top1_class if 'top1_class' in locals() else result
+                    t1_prob = top1_prob if 'top1_prob' in locals() else 100.0
+                    
                 t2_class = top2_class if 'top2_class' in locals() else ""
                 t2_prob = top2_prob if 'top2_prob' in locals() else 0.0
                 f_prob = female_prob if 'female_prob' in locals() else 0.0
