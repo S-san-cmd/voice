@@ -18,6 +18,12 @@ importlib.reload(ml_classifier)
 from feature_extractor import extract_features
 from rule_classifier import classify_voice, evaluate_voice_quality
 from ml_classifier import load_model, predict_voice
+import gc
+
+@st.cache_resource
+def get_cached_model():
+    return load_model()
+
 
 def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob, female_prob):
     width, height = 1200, 630
@@ -102,8 +108,11 @@ if audio_source is not None:
             else:
                 result, reasons = classify_voice(features)
                 
-                ai_model = load_model()
+                ai_model = get_cached_model()
                 app_url = "https://q8nrqzqtgxkukxmyxoxym5.streamlit.app"
+                
+                # メモリ解放
+                gc.collect()
                 
                 if ai_model:
                     def format_class_name(c):
