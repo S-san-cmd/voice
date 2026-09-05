@@ -44,7 +44,7 @@ def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob
         draw.text((width/2, 300), "女性の可能性", font=font_medium, fill='#ff4b4b', anchor="mm")
         draw.text((width/2, 420), f"{female_prob:.1f}%", font=font_large, fill='#ff4b4b', anchor="mm")
         if top1_class:
-            draw.text((width/2, 510), f"2位: {top1_class} ({top1_prob:.1f}%)", font=font_small, fill='#666666', anchor="mm")
+            draw.text((width/2, 510), f"({top1_class} {top1_prob:.1f}%)", font=font_small, fill='#666666', anchor="mm")
     else:
         draw.text((width/2, 300), f"1位: {top1_class} ({top1_prob:.1f}%)", font=font_large, fill='#4b8bff', anchor="mm")
         if top2_class:
@@ -145,11 +145,11 @@ if audio_source is not None:
                             
                         st.markdown(f"<h2 style='text-align: center; color: #ff4b4b;'>女性の可能性: {female_prob:.1f}%</h2>", unsafe_allow_html=True)
                         if top_nf_class:
-                            st.markdown(f"<h3 style='text-align: center; color: #666666;'>2位: {top_nf_class} ({top_nf_prob:.1f}%)</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='text-align: center; color: #666666;'>({top_nf_class} {top_nf_prob:.1f}%)</h3>", unsafe_allow_html=True)
                             
                         tweet_text = f"私の声の「女性の可能性」は {female_prob:.1f}% でした！✨\n"
                         if top_nf_class:
-                            tweet_text += f"（次に近い声: {top_nf_class} {top_nf_prob:.1f}%）\n\n"
+                            tweet_text += f"（{top_nf_class} {top_nf_prob:.1f}%）\n\n"
                         else:
                             tweet_text += "\n"
                         tweet_text += f"あなたも声を測定してみよう！\n#発声タイプ判定\n{app_url}"
