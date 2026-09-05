@@ -6,7 +6,8 @@ import os
 import tempfile
 import importlib
 import urllib.parse
-
+import io
+from PIL import Image, ImageDraw, ImageFont
 import feature_extractor
 import rule_classifier
 import ml_classifier
@@ -17,6 +18,39 @@ importlib.reload(ml_classifier)
 from feature_extractor import extract_features
 from rule_classifier import classify_voice, evaluate_voice_quality
 from ml_classifier import load_model, predict_voice
+
+def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob, female_prob):
+    width, height = 1200, 630
+    img = Image.new('RGB', (width, height), color='#f0f4f8')
+    draw = ImageDraw.Draw(img)
+    
+    font_path = "font.ttf"
+    try:
+        font_large = ImageFont.truetype(font_path, 90)
+        font_medium = ImageFont.truetype(font_path, 60)
+        font_small = ImageFont.truetype(font_path, 40)
+    except IOError:
+        font_large = ImageFont.load_default()
+        font_medium = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+        
+    draw.text((width/2, 120), "発声タイプ判定結果", font=font_medium, fill='#333333', anchor="mm")
+    
+    if app_mode == "両声類向け":
+        draw.text((width/2, 320), "女性の可能性", font=font_medium, fill='#ff4b4b', anchor="mm")
+        draw.text((width/2, 450), f"{female_prob:.1f}%", font=font_large, fill='#ff4b4b', anchor="mm")
+    else:
+        draw.text((width/2, 300), f"1位: {top1_class} ({top1_prob:.1f}%)", font=font_large, fill='#4b8bff', anchor="mm")
+        if top2_class:
+            draw.text((width/2, 430), f"2位: {top2_class} ({top2_prob:.1f}%)", font=font_medium, fill='#666666', anchor="mm")
+            
+    draw.text((width/2, 570), "あなたも声を測定してみよう！ #発声タイプ判定", font=font_small, fill='#888888', anchor="mm")
+    
+    draw.rectangle([20, 20, width-20, height-20], outline="#cccccc", width=8)
+    
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    return img_byte_arr.getvalue()
 
 st.set_page_config(page_title="発声タイプ判定", layout="wide")
 st.title("発声タイプ判定")
@@ -123,6 +157,26 @@ if audio_source is not None:
                 st.write(f"**スコア**: {score} / 100")
                 for qc in quality_comments:
                     st.write(f"- {qc}")
+                
+                # シェア用画像の生成と表示
+                st.markdown("---")
+                st.subheader("シェア用画像")
+                st.write("この画像を保存（長押し or 右クリック）して、X（Twitter）の投稿に添付してください。")
+                
+                t1_class = top1_class if 'top1_class' in locals() else result
+                t1_prob = top1_prob if 'top1_prob' in locals() else 100.0
+                t2_class = top2_class if 'top2_class' in locals() else ""
+                t2_prob = top2_prob if 'top2_prob' in locals() else 0.0
+                f_prob = female_prob if 'female_prob' in locals() else 0.0
+                
+                result_img_bytes = generate_result_image(app_mode, t1_class, t1_prob, t2_class, t2_prob, f_prob)
+                st.image(result_img_bytes, use_container_width=True)
+                st.download_button(
+                    label="📷 画像をダウンロードする",
+                    data=result_img_bytes,
+                    file_name="voice_result.png",
+                    mime="image/png"
+                )
                 
                 # X Share Button
                 st.markdown("---")
