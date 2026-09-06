@@ -23,26 +23,30 @@ def get_cached_model():
     return load_model()
 
 
-def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob, female_prob):
+def generate_result_image(app_mode, top1_class, top1_prob, top2_class, top2_prob, female_prob, voice_score=None):
     width, height = 1200, 630
     img = Image.new('RGB', (width, height), color='#f0f4f8')
     draw = ImageDraw.Draw(img)
     
     font_path = "font.ttf"
     try:
-        font_large = ImageFont.truetype(font_path, 90)
-        font_medium = ImageFont.truetype(font_path, 60)
-        font_small = ImageFont.truetype(font_path, 40)
+        font_xlarge = ImageFont.truetype(font_path, 110)
+        font_large = ImageFont.truetype(font_path, 80)
+        font_medium = ImageFont.truetype(font_path, 50)
+        font_small = ImageFont.truetype(font_path, 35)
     except Exception:
+        font_xlarge = ImageFont.load_default()
         font_large = ImageFont.load_default()
         font_medium = ImageFont.load_default()
         font_small = ImageFont.load_default()
         
-    draw.text((width/2, 120), "発声タイプ判定結果", font=font_medium, fill='#333333', anchor="mm")
+    draw.text((width/2, 80), "発声タイプ判定結果", font=font_medium, fill='#333333', anchor="mm")
     
-    if app_mode == "両声類向け":
-        draw.text((width/2, 300), "女性の可能性", font=font_medium, fill='#ff4b4b', anchor="mm")
-        draw.text((width/2, 420), f"{female_prob:.1f}%", font=font_large, fill='#ff4b4b', anchor="mm")
+    if app_mode == "男性両声類向け":
+        if voice_score is not None:
+            draw.text((width/2, 220), "女声スコア", font=font_medium, fill='#ff4b4b', anchor="mm")
+            draw.text((width/2, 330), f"{voice_score:.1f}", font=font_xlarge, fill='#ff4b4b', anchor="mm")
+        draw.text((width/2, 450), f"女性の可能性: {female_prob:.1f}%", font=font_small, fill='#333333', anchor="mm")
         if top1_class:
             draw.text((width/2, 510), f"({top1_class} {top1_prob:.1f}%)", font=font_small, fill='#666666', anchor="mm")
     else:
@@ -62,7 +66,7 @@ st.set_page_config(page_title="発声タイプ判定", layout="wide")
 st.title("発声タイプ判定")
 st.write("WAVファイルまたはMP3ファイルをアップロードして、声の音響的特徴からジェンダーや発声タイプを推定します。")
 
-app_mode = st.radio("表示モードを選択してください", ["一般向け", "両声類向け"])
+app_mode = st.radio("表示モードを選択してください", ["一般向け", "男性両声類向け"])
 
 input_method = st.radio("音声の入力方法を選択してください", ["ファイルアップロード", "マイクで録音（5秒以上）"])
 
@@ -134,7 +138,20 @@ if audio_source is not None:
                     top2_class = format_class_name(sorted_probs[1][0]) if len(sorted_probs) > 1 else ""
                     top2_prob = sorted_probs[1][1] * 100 if len(sorted_probs) > 1 else 0
                     
-                    if app_mode == "両声類向け":
+                    if app_mode == "男性両声類向け":
+                        prob_female = ai_probs.get("シス女性", ai_probs.get("女性", 0)) * 100
+                        prob_ryou = ai_probs.get("両声類", 0) * 100
+                        
+                        prob_mihen = 0
+                        prob_uragoe = 0
+                        for k, v in ai_probs.items():
+                            if "未変声" in k:
+                                prob_mihen = v * 100
+                            elif "裏声" in k:
+                                prob_uragoe = v * 100
+                                
+                        voice_score = prob_female + (prob_ryou / 2) + (prob_mihen * 0.7) - prob_uragoe
+                        
                         non_female_probs = [item for item in sorted_probs if "女性" not in format_class_name(item[0])]
                         if non_female_probs:
                             top_nf_class = format_class_name(non_female_probs[0][0])
@@ -143,11 +160,13 @@ if audio_source is not None:
                             top_nf_class = ""
                             top_nf_prob = 0
                             
-                        st.markdown(f"<h2 style='text-align: center; color: #ff4b4b;'>女性の可能性: {female_prob:.1f}%</h2>", unsafe_allow_html=True)
+                        st.markdown(f"<h1 style='text-align: center; color: #ff4b4b; font-size: 3em;'>女声スコア: {voice_score:.1f}</h1>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='text-align: center; color: #333333;'>女性の可能性: {female_prob:.1f}%</h3>", unsafe_allow_html=True)
                         if top_nf_class:
-                            st.markdown(f"<h3 style='text-align: center; color: #666666;'>({top_nf_class} {top_nf_prob:.1f}%)</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h4 style='text-align: center; color: #666666;'>({top_nf_class} {top_nf_prob:.1f}%)</h4>", unsafe_allow_html=True)
                             
-                        tweet_text = f"私の声の「女性の可能性」は {female_prob:.1f}% でした！✨\n"
+                        tweet_text = f"私の「女声スコア」は {voice_score:.1f} でした！✨\n"
+                        tweet_text += f"女性の可能性: {female_prob:.1f}%\n"
                         if top_nf_class:
                             tweet_text += f"（{top_nf_class} {top_nf_prob:.1f}%）\n\n"
                         else:
@@ -189,7 +208,7 @@ if audio_source is not None:
                 st.subheader("シェア用画像")
                 st.write("この画像を保存（長押し or 右クリック）して、X（Twitter）の投稿に添付してください。")
                 
-                if app_mode == "両声類向け" and 'top_nf_class' in locals():
+                if app_mode == "男性両声類向け" and 'top_nf_class' in locals():
                     t1_class = top_nf_class
                     t1_prob = top_nf_prob
                 else:
@@ -200,7 +219,9 @@ if audio_source is not None:
                 t2_prob = top2_prob if 'top2_prob' in locals() else 0.0
                 f_prob = female_prob if 'female_prob' in locals() else 0.0
                 
-                result_img_bytes = generate_result_image(app_mode, t1_class, t1_prob, t2_class, t2_prob, f_prob)
+                v_score = voice_score if 'voice_score' in locals() else None
+                
+                result_img_bytes = generate_result_image(app_mode, t1_class, t1_prob, t2_class, t2_prob, f_prob, voice_score=v_score)
                 st.image(result_img_bytes, use_container_width=True)
                 st.download_button(
                     label="📷 画像をダウンロードする",
