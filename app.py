@@ -139,16 +139,20 @@ if audio_source is not None:
                     top2_prob = sorted_probs[1][1] * 100 if len(sorted_probs) > 1 else 0
                     
                     if app_mode == "男性両声類向け":
-                        prob_female = ai_probs.get("シス女性", ai_probs.get("女性", 0)) * 100
-                        prob_ryou = ai_probs.get("両声類", 0) * 100
-                        
+                        prob_female = 0
+                        prob_ryou = 0
                         prob_mihen = 0
                         prob_uragoe = 0
+                        
                         for k, v in ai_probs.items():
-                            if "未変声" in k:
-                                prob_mihen = v * 100
+                            if "女性" in k:
+                                prob_female += v * 100
+                            elif "両声類" in k:
+                                prob_ryou += v * 100
+                            elif "未変声" in k:
+                                prob_mihen += v * 100
                             elif "裏声" in k:
-                                prob_uragoe = v * 100
+                                prob_uragoe += v * 100
                                 
                         voice_score = prob_female + (prob_ryou / 2) + (prob_mihen * 0.7) - prob_uragoe
                         
